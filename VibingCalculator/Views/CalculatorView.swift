@@ -10,14 +10,52 @@ struct CalculatorView: View {
         ["0", ".", "=", "+"]
     ]
 
+    private var hasResult: Bool {
+        !vm.resultText.isEmpty
+    }
+
+    private var displayExpression: String {
+        vm.displayExpression
+    }
+
     var body: some View {
         VStack(spacing: 12) {
             VStack(alignment: .trailing, spacing: 8) {
-                Text(vm.expression)
-                    .font(.largeTitle.weight(.semibold))
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
+                ZStack(alignment: .bottomTrailing) {
+                    Text(displayExpression)
+                        .font(.system(size: hasResult ? 24 : 56, weight: hasResult ? .semibold : .bold, design: .rounded))
+                        .foregroundStyle(hasResult ? .secondary : (vm.expression.isEmpty ? .secondary : .primary))
+                        .opacity(vm.expression.isEmpty && !hasResult ? 0.35 : 1)
+                        .lineLimit(1)
+                        .minimumScaleFactor(hasResult ? 0.5 : 0.45)
+                        .offset(y: hasResult ? -68 : 0)
+
+                    if hasResult {
+                        Text(vm.displayResultText)
+                            .font(.system(size: 56, weight: .bold, design: .rounded))
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.45)
+                            .transition(.opacity)
+                    }
+
+                    if let fadingExpression = vm.fadingExpression {
+                        Text(fadingExpression)
+                            .font(.system(size: 24, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
+                            .offset(y: -68)
+                            .transition(.opacity)
+                    }
+                }
+                .frame(maxWidth: .infinity, minHeight: 132, alignment: .bottomTrailing)
+                .padding(.top)
+                .animation(
+                    vm.shouldAnimateDisplayTransition ? .spring(response: 0.45, dampingFraction: 0.82) : nil,
+                    value: hasResult
+                )
+                .animation(.easeOut(duration: 0.25), value: vm.fadingExpression)
 
                 if vm.isLoading {
                     ProgressView("Calculating on AWS...")
@@ -30,16 +68,8 @@ struct CalculatorView: View {
                         .frame(maxWidth: .infinity, alignment: .trailing)
                         .font(.footnote)
                 }
-
-                if !vm.resultText.isEmpty {
-                    Text(vm.resultText)
-                        .font(.title3)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .transition(.opacity.combined(with: .move(edge: .trailing)))
-                }
             }
             .padding(.horizontal)
-            .padding(.top)
 
             Spacer()
 
@@ -66,7 +96,6 @@ struct CalculatorView: View {
             .padding(.horizontal)
             .padding(.bottom)
         }
-        .navigationTitle("Vibing Calculator")
     }
 }
 
