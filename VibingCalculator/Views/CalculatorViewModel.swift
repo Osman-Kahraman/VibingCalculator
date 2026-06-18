@@ -25,11 +25,7 @@ final class CalculatorViewModel: ObservableObject {
     }
 
     var displayResultText: String {
-        guard isContinuingFromResult else {
-            return resultText
-        }
-
-        return formattedExpression(expression)
+        isContinuingFromResult ? expression : resultText
     }
 
     func append(_ text: String) {
@@ -70,19 +66,6 @@ final class CalculatorViewModel: ObservableObject {
 
     private func isOperator(_ text: String) -> Bool {
         ["/", "*", "-", "+"].contains(text)
-    }
-
-    private func formattedExpression(_ expression: String) -> String {
-        expression.reduce(into: "") { formatted, character in
-            let text = String(character)
-
-            if isOperator(text) {
-                formatted += " \(text) "
-            } else {
-                formatted += text
-            }
-        }
-        .trimmingCharacters(in: .whitespaces)
     }
 
     func clear() {
