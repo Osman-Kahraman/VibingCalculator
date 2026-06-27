@@ -13,12 +13,19 @@ final class CalculatorViewModel: ObservableObject {
     @Published var fadingExpression: String?
 
     private var isContinuingFromResult = false
-    private var expressionBeforeContinuingFromResult = ""
-    private let endpoint = URL(string: "...")!
+    @Published var expressionHistory: [String] = []
+
+    private var lastExpressionBeforeContinuing: String? {
+        expressionHistory.last
+    }
 
     var displayExpression: String {
         if !resultText.isEmpty && isContinuingFromResult {
-            return expressionBeforeContinuingFromResult.isEmpty ? "0" : expressionBeforeContinuingFromResult
+            if let last = lastExpressionBeforeContinuing, !last.isEmpty {
+                return last
+            } else {
+                return "0"
+            }
         }
 
         return expression.isEmpty ? "0" : expression
@@ -34,7 +41,6 @@ final class CalculatorViewModel: ObservableObject {
         if !resultText.isEmpty {
             if isOperator(text) {
                 if !isContinuingFromResult {
-                    expressionBeforeContinuingFromResult = expression
                     expression = resultText + text
                 } else if let lastCharacter = expression.last, isOperator(String(lastCharacter)) {
                     expression.removeLast()
@@ -56,7 +62,7 @@ final class CalculatorViewModel: ObservableObject {
 
             expression = text == "." ? "0." : text
             resultText = ""
-            expressionBeforeContinuingFromResult = ""
+            // Preserve history when starting a new number
             showResultPopup = false
             return
         }
@@ -73,7 +79,7 @@ final class CalculatorViewModel: ObservableObject {
         resultText = ""
         errorMessage = nil
         isContinuingFromResult = false
-        expressionBeforeContinuingFromResult = ""
+        expressionHistory.removeAll()
         fadingExpression = nil
     }
 
@@ -86,7 +92,7 @@ final class CalculatorViewModel: ObservableObject {
         guard !expression.isEmpty else { return }
         expression.removeLast()
         isContinuingFromResult = false
-        expressionBeforeContinuingFromResult = ""
+        // Keep history on backspace
         fadingExpression = nil
     }
 
@@ -95,14 +101,24 @@ final class CalculatorViewModel: ObservableObject {
 
         if isContinuingFromResult {
             shouldAnimateDisplayTransition = false
-            fadingExpression = expressionBeforeContinuingFromResult.isEmpty ? nil : expressionBeforeContinuingFromResult
+            if let last = lastExpressionBeforeContinuing, !last.isEmpty {
+                fadingExpression = last
+            } else {
+                fadingExpression = nil
+            }
             resultText = ""
             isContinuingFromResult = false
-            expressionBeforeContinuingFromResult = ""
+            // Preserve history when continuing from result
             showResultPopup = false
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(280))
                 self.fadingExpression = nil
+            }
+        }
+
+        if !expression.isEmpty {
+            if expressionHistory.last != expression {
+                expressionHistory.append(expression)
             }
         }
 
@@ -119,7 +135,7 @@ final class CalculatorViewModel: ObservableObject {
                             self.shouldAnimateDisplayTransition = true
                             self.resultText = "\(value)"
                             self.isContinuingFromResult = false
-                            self.expressionBeforeContinuingFromResult = ""
+                            // Preserve history on success
                             self.showResultPopup = true
                             Task { @MainActor in
                                 try? await Task.sleep(for: .seconds(0.5))
@@ -136,3 +152,4 @@ final class CalculatorViewModel: ObservableObject {
         }
     }
 }
+

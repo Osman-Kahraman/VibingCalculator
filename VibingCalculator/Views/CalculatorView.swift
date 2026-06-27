@@ -24,36 +24,51 @@ struct CalculatorView: View {
             
             VStack() {
                 ZStack(alignment: .bottomTrailing) {
-                    Text(displayExpression)
-                        .font(.system(size: hasResult ? 24 : 56, weight: hasResult ? .semibold : .bold, design: .rounded))
-                        .foregroundStyle(hasResult ? .secondary : (vm.expression.isEmpty ? .secondary : .primary))
-                        .opacity(vm.expression.isEmpty && !hasResult ? 0.35 : 1)
-                        .lineLimit(1)
-                        .minimumScaleFactor(hasResult ? 0.5 : 0.45)
-                        .offset(y: hasResult ? -68 : 0)
+                    VStack(alignment: .trailing, spacing: 6) {
+                        // 1) History: oldest at top, newest at bottom
+                        ForEach(vm.expressionHistory.dropLast(), id: \.self) { item in
+                            Text(item)
+                                .font(.system(size: 16, weight: .regular, design: .rounded))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.6)
+                                .transition(.move(edge: .top).combined(with: .opacity))
+                        }
 
-                    if hasResult {
-                        Text(vm.displayResultText)
-                            .font(.system(size: 56, weight: .bold, design: .rounded))
-                            .foregroundStyle(.primary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.45)
-                            .transition(.opacity)
-                    }
+                        // 2) Current small expression (only when there is a result, so it appears above the big result)
+                        if hasResult {
+                            Text(displayExpression)
+                                .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.6)
+                                .transition(.opacity)
+                        }
 
-                    if let fadingExpression = vm.fadingExpression {
-                        Text(fadingExpression)
-                            .font(.system(size: 24, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.5)
-                            .offset(y: -68)
-                            .transition(.opacity)
+                        // 3) Big result or big expression (newest at the bottom)
+                        Group {
+                            if hasResult {
+                                Text(vm.displayResultText)
+                                    .font(.system(size: 56, weight: .bold, design: .rounded))
+                                    .foregroundStyle(.primary)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.45)
+                                    .transition(.opacity)
+                            } else {
+                                Text(displayExpression)
+                                    .font(.system(size: 56, weight: .bold, design: .rounded))
+                                    .foregroundStyle(vm.expression.isEmpty ? .secondary : .primary)
+                                    .opacity(vm.expression.isEmpty ? 0.35 : 1)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.45)
+                            }
+                        }
                     }
+                    .frame(maxWidth: .infinity, alignment: .bottomTrailing)
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 12)
                 }
-                .frame(maxWidth: .infinity, minHeight: 232, alignment: .bottomTrailing)
-                .padding(.trailing, 20)
-                .padding(.bottom, 12)
+                .frame(maxWidth: .infinity, minHeight: 260, alignment: .bottomTrailing)
                 .animation(
                     vm.shouldAnimateDisplayTransition ? .spring(response: 0.45, dampingFraction: 0.82) : nil,
                     value: hasResult
