@@ -87,11 +87,7 @@ struct CalculatorView: View {
                                 }
                             }
                         }
-
-                        // 2) Current small expression (only when there is a result, so it appears above the big result)
-                        // Removed as per instructions
-
-                        // 3) Big result or big expression (newest at the bottom)
+                        
                         Group {
                             if hasResult {
                                 Text(vm.displayResultText)

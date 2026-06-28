@@ -96,6 +96,62 @@ final class CalculatorViewModel: ObservableObject {
         // Keep history on backspace
         fadingExpression = nil
     }
+    
+    private func performLambdaCalculation() async {
+        await withCheckedContinuation { continuation in
+            LambdaService.calculate(
+                expression: self.expression,
+                aiMode: false
+            ) { result in
+                DispatchQueue.main.async {
+                    Task { @MainActor in
+                        self.handleCalculationResult(result)
+                        continuation.resume()
+                    }
+                }
+            }
+        }
+    }
+    
+    private func performAICalculation() async {
+        await withCheckedContinuation { continuation in
+            LambdaService.calculate(
+                expression: self.expression,
+                aiMode: true
+            ) { result in
+                DispatchQueue.main.async {
+                    Task { @MainActor in
+                        self.handleCalculationResult(result)
+                        continuation.resume()
+                    }
+                }
+            }
+        }
+    }
+
+    private func handleCalculationResult(_ result: Result<Int, Error>) {
+        switch result {
+        case .success(let value):
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                if self.expressionHistory.last != self.expression {
+                    self.expressionHistory.append(self.expression)
+                }
+            }
+
+            self.shouldAnimateDisplayTransition = true
+            self.resultText = "\(value)"
+            self.isContinuingFromResult = false
+            self.showResultPopup = true
+
+            Task {
+                try? await Task.sleep(for: .seconds(0.5))
+                self.showResultPopup = false
+            }
+
+        case .failure(let error):
+            self.errorMessage = error.localizedDescription
+        }
+    }
 
     func calculate() async {
         guard !expression.isEmpty else { return }
@@ -121,35 +177,10 @@ final class CalculatorViewModel: ObservableObject {
         errorMessage = nil
         defer { isLoading = false }
 
-        await withCheckedContinuation { continuation in
-            LambdaService.calculate(expression: self.expression) { result in
-                DispatchQueue.main.async {
-                    Task { @MainActor in
-                        switch result {
-                        case .success(let value):
-                            withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
-                                if self.expressionHistory.last != self.expression {
-                                    self.expressionHistory.append(self.expression)
-                                }
-                            }
-                            self.shouldAnimateDisplayTransition = true
-                            self.resultText = "\(value)"
-                            self.isContinuingFromResult = false
-                            // Preserve history on success
-                            self.showResultPopup = true
-                            Task { @MainActor in
-                                try? await Task.sleep(for: .seconds(0.5))
-                                self.showResultPopup = false
-                            }
-                        case .failure(let error):
-                            self.errorMessage = "Something went wrong: \(error.localizedDescription)"
-                            self.showResultPopup = false
-                        }
-                        continuation.resume()
-                    }
-                }
-            }
+        if isAIMode {
+            await performAICalculation()
+        } else {
+            await performLambdaCalculation()
         }
     }
 }
-
