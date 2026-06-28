@@ -4,6 +4,7 @@ import Combine
 
 @MainActor
 final class CalculatorViewModel: ObservableObject {
+    @Published var isAIMode = false
     @Published var expression: String = ""
     @Published var resultText: String = ""
     @Published var isLoading: Bool = false

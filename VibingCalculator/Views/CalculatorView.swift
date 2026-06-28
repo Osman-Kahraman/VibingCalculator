@@ -24,7 +24,39 @@ struct CalculatorView: View {
             Spacer()
             
             VStack() {
-                ZStack(alignment: .bottomTrailing) {
+                ZStack() {
+                    VStack {
+                        HStack {
+                            Button {
+                                withAnimation(.spring()) {
+                                    vm.isAIMode.toggle()
+                                }
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "cloud.fill")
+                                    if vm.isAIMode {
+                                        Text("AI")
+                                            .font(.caption.bold())
+                                    }
+                                }
+                                .foregroundStyle(
+                                    vm.isAIMode
+                                    ? .blue
+                                    : .gray.opacity(0.45)
+                                )
+                                .symbolEffect(
+                                    .bounce,
+                                    value: vm.isAIMode
+                                )
+                            }
+
+                            Spacer()
+                        }
+
+                        Spacer()
+                    }
+                    .padding(16)
+                    
                     VStack(alignment: .trailing, spacing: 6) {
                         ScrollViewReader { proxy in
                             ScrollView(.vertical, showsIndicators: false) {
